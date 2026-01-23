@@ -29,19 +29,21 @@ while True:
             name = input("Enter your name")
             ID = int(input("Enter your library ID:"))
             book = input("Enter the name of the book you want to borrow")
-            if book.title() in users[name.title()]["Borrowed Books"]:
-                print("User has already borrowed this book.")
-            else:
-                for b in Books:
-                    if book.lower() == b.lower():
-                        if Books[b]["Quantity"] ==0:
-                            print("Book not available yet. Come back later.")
-                            break
-                        else:
-                            Books[b]["Quantity"]-=1
-                            users[name.title()]["Borrowed Books"].append(b)
-                            print("Happy reading!")
-                            break
+            for n in users:
+                if users[n]["ID"] == ID:
+                    if book.title() in users[name.title()]["Borrowed Books"]:
+                        print("User has already borrowed this book.")
+                    else:
+                        for b in Books:
+                            if book.lower() == b.lower():
+                                if Books[b]["Quantity"] ==0:
+                                    print("Book not available yet. Come back later.")
+                                    break
+                                else:
+                                    Books[b]["Quantity"]-=1
+                                    users[name.title()]["Borrowed Books"].append(b)
+                                    print("Happy reading!")
+                                    break
                 else:
                     print("Book not present in library")
         elif c ==2:
