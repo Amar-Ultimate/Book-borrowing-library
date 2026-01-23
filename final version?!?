@@ -1,0 +1,137 @@
+import random
+
+nUsers = 1
+users = {
+    "Amarthya": {
+        "ID": 1,
+        "Borrowed Books": []
+    }
+}
+
+Books = {
+    "Percy Jackson": {
+        "Author": "Rick Riordan",
+        "Genre": "Fantasy",
+        "Quantity": 10
+    },
+    "Harry Potter": {
+        "Author": "J.K. Rowling",
+        "Genre": "Fantasy",
+        "Quantity": 1
+    }
+}
+
+print(users)
+print(Books)
+
+while True:
+    entry = input("Are you a member of the library? ")
+
+    if entry.lower() == "yes":
+        c = int(input(
+            "1. Borrow a book\n"
+            "2. Return a book\n"
+            "3. Get book recommendation\n"
+            "4. Donate a book\n"
+            "5. Show your library data\n"
+            "6. Show available books\n"
+            "7. Exit\n"
+            "Enter your choice: "
+        ))
+
+        if c == 1:
+            while True:
+                name = input("Enter your name: ").title()
+                ID = int(input("Enter your library ID: "))
+                if name in users and users[name]["ID"] == ID:
+                    user = users[name]
+                    break
+                else:
+                    print("Incorrect name/id, please try again")
+
+            book = input("Enter the name of the book you want to borrow: ")
+
+            if book.title() in user["Borrowed Books"]:
+                print("User has already borrowed this book.")
+            else:
+                for b in Books:
+                    if book.lower() == b.lower():
+                        if Books[b]["Quantity"] == 0:
+                            print("Book not available yet. Come back later.")
+                        else:
+                            Books[b]["Quantity"] -= 1
+                            user["Borrowed Books"].append(b)
+                            print("Happy reading!")
+                        break
+                else:
+                    print("Book not present in library")
+
+        elif c == 2:
+            while True:
+                name = input("Enter your name: ").title()
+                ID = int(input("Enter your library ID: "))
+                if name in users and users[name]["ID"] == ID:
+                    user = users[name]
+                    break
+                else:
+                    print("Incorrect name/id, please try again")
+
+            book = input("Enter the name of the book you want to return: ").title()
+
+            if book in user["Borrowed Books"]:
+                user["Borrowed Books"].remove(book)
+                Books[book]["Quantity"] += 1
+                print("Thank you for your prompt return of the book!")
+            else:
+                print("You have not borrowed this book.")
+
+        elif c == 3:
+            genre = input("Enter the genre you want to read: ")
+            Rbooks = []
+            for B in Books:
+                if Books[B]["Genre"].lower() == genre.lower() and Books[B]["Quantity"] > 0:
+                    Rbooks.append(B)
+
+            if Rbooks:
+                print(random.choice(Rbooks), "would suit you")
+            else:
+                print("No books of this genre available.")
+
+        elif c == 4:
+            donation = input("Enter the name of the book you want to donate: ").title()
+            if donation in Books:
+                Books[donation]["Quantity"] += 1
+            else:
+                Author = input("Enter the book's author: ")
+                Genre = input("Enter the book's genre: ")
+                Books[donation] = {"Author": Author, "Genre": Genre, "Quantity": 1}
+            print("Thanks for donating!")
+
+        elif c == 5:
+            while True:
+                name = input("Enter your name: ").title()
+                ID = int(input("Enter your library ID: "))
+                if name in users and users[name]["ID"] == ID:
+                    print(users[name])
+                    break
+                else:
+                    print("Incorrect name/id, please try again")
+
+        elif c == 6:
+            print(Books)
+
+        elif c == 7:
+            print("Hope you visit the library again soon!\nExiting...")
+            break
+
+    elif entry.lower() == "no":
+        c = input("Would you like to join the library? ")
+        if c.lower() == "yes":
+            nUsers += 1
+            name = input("Enter your name: ").title()
+            users[name] = {"ID": nUsers, "Borrowed Books": []}
+            print("Welcome to the library!")
+            print(name, "your library ID is", nUsers)
+        else:
+            print("Ok, have a good day.")
+            break
