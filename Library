@@ -1,0 +1,106 @@
+import random
+nUsers = 1
+users = {
+    "Amarthya":{
+        "ID" : 1,
+        "Borrowed Books" : [],
+        
+    }
+}
+Books = {
+    "Percy Jackson":{
+        "Author" : "Rick Riordan",
+        "Genre" : "Fantasy",
+        "Quantity" : 10
+    },
+    "Harry Potter":{
+        "Author" : "J.K. Rowling",
+        "Genre" : "Fantasy",
+        "Quantity" : 1
+    }
+}
+print(users)
+print(Books)
+while True: 
+    entry = input("Are you a member of the library?")
+    if entry.lower() == "yes":
+        c = int(input("1. Would you like to borrow a book? \n 2.Would you like to return a book\n 3. Would you like a book recommended to you?\n4. Would you like to Donate a book to the library\n 5. Show your library data\n6.Show available books in the library\n7.Exit the library.\n Enter your choice. "))
+        if c ==1: 
+            name = input("Enter your name")
+            ID = int(input("Enter your library ID:"))
+            book = input("Enter the name of the book you want to borrow")
+            if book.title() in users[name.title()]["Borrowed Books"]:
+                print("User has already borrowed this book.")
+            else:
+                for b in Books:
+                    if book.lower() == b.lower():
+                        if Books[b]["Quantity"] ==0:
+                            print("Book not available yet. Come back later.")
+                            break
+                        else:
+                            Books[b]["Quantity"]-=1
+                            users[name.title()]["Borrowed Books"].append(b)
+                            print("Happy reading!")
+                            break
+                else:
+                    print("Book not present in library")
+        elif c ==2:
+            name = input("Enter your name")
+            ID = int(input("Enter your library ID:"))
+            book = input("Enter the name of the book you want to return")
+            book=book.title()
+            for b in Books:
+                if b.lower()==book.lower():
+                    Books[b]["Quantity"]+=1
+            for n in users:
+                if users[n]["ID"] == ID:
+                    users[n]["Borrowed Books"].remove(book)
+                    print("Thank you for your prompt return of the book!")
+        elif c == 3:
+            genre = input("Enter the genre you want to read.")
+            Rbooks = ()
+            for B in Books:
+                if Books[B]["Genre"].lower() == genre.lower() and Books[B]["Quantity"]>0:
+                    Rbooks=Rbooks +(B,)
+            if len(Rbooks)>0:
+                recommendation = Rbooks[random.randint(0,len(Rbooks)-1)]
+                print(recommendation, "would suit you")
+            else:
+                print("There are no books of this genre present in the library currently.")
+         
+        elif c ==4:
+            donation=input("Enter the name of the book you want to donate to the library.")
+            if donation.title() in Books:
+                Books[donation.title()]["Quantity"]+=1
+            else:
+                Author=input("Enter the book's author.")
+                Genre = input("Enter the book's genre.")
+                Books[donation.title()]={"Author":Author,"Genre":Genre,"Quantity":1}
+            print("Thanks for donating!")
+
+        elif c ==5:
+            name = input("Enter your name")
+            ID = int(input("Enter your library ID:"))
+            for n in users:
+                if users[n]["ID"] == ID:
+                    print(users[n])
+        elif c == 6:
+            print(Books)
+        elif c ==7:
+            print("Hope you visit the library again soon!\nExiting...")
+            break
+        
+    if entry.lower() == "no":
+        c = input("Would you like to join the library:")
+        if c.lower() == "yes":
+            nUsers +=1
+            name = input("Enter your name: ")
+            users[name.title()]={"ID": nUsers,"Borrowed Books":[]}
+            print("Welcome to the library!")
+            print(name,"your library ID is", nUsers )
+        if c.lower()=="no":
+            print("Ok, Have a good day.")
+            break
+            
+
+        
