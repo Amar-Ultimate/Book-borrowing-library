@@ -1,6 +1,6 @@
 import random
 
-nUsers = 2
+nUsers = 3
 users = {
     "Amarthya": {
         "ID": 1,
@@ -9,6 +9,10 @@ users = {
     "Avyukt": {
         "ID": 2,
         "Borrowed Books": []
+    },
+    "Ashwin":{
+        "ID" : 3,
+        "Borrowed Books":[]
     }
 }
 Books = {
