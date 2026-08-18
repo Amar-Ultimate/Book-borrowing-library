@@ -1,1 +1,456 @@
+import random
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+nUsers = 3
+
+users = {
+    "Amarthya": {
+        "ID": 1,
+        "Borrowed Books": []
+    },
+    "Avyukt": {
+        "ID": 2,
+        "Borrowed Books": []
+    },
+    "Ashwin": {
+        "ID": 3,
+        "Borrowed Books": []
+    }
+}
+
+Books = {
+    "Percy Jackson": {
+        "Author": "Rick Riordan",
+        "Genre": "Fantasy",
+        "Quantity": 10
+    },
+    "Harry Potter": {
+        "Author": "J.K. Rowling",
+        "Genre": "Fantasy",
+        "Quantity": 1
+    },
+    "Hercule Poirot": {
+        "Author": "Agatha Christie",
+        "Genre": "Mystery",
+        "Quantity": 69
+    },
+    "Bhagwat Gita": {
+        "Author": "Maharishi Ved Vyasa",
+        "Genre": "Religion",
+        "Quantity": 5
+    },
+    "The shining": {
+        "Author": "Stephen King",
+        "Genre": "Horror",
+        "Quantity": 23
+    }
+}
+
+
+# ---------------- BACKEND FUNCTIONS ----------------
+
+def get_user():
+    name = simpledialog.askstring(
+        "Library Login",
+        "Enter your name:"
+    )
+
+    if name is None:
+        return None
+
+    ID = simpledialog.askinteger(
+        "Library Login",
+        "Enter your library ID:"
+    )
+
+    if ID is None:
+        return None
+
+    name = name.title()
+
+    if name in users and users[name]["ID"] == ID:
+        return users[name]
+
+    messagebox.showerror(
+        "Error",
+        "Incorrect name/ID."
+    )
+
+    return None
+
+
+def borrow_book():
+    user = get_user()
+
+    if user is None:
+        return
+
+    book = simpledialog.askstring(
+        "Borrow Book",
+        "Enter the name of the book you want to borrow:"
+    )
+
+    if book is None:
+        return
+
+    if book.title() in user["Borrowed Books"]:
+        messagebox.showinfo(
+            "Borrow Book",
+            "User has already borrowed this book."
+        )
+
+    else:
+        for b in Books:
+
+            if book.lower() == b.lower():
+
+                if Books[b]["Quantity"] == 0:
+
+                    messagebox.showinfo(
+                        "Borrow Book",
+                        "Book not available yet. Come back later."
+                    )
+
+                else:
+                    Books[b]["Quantity"] -= 1
+                    user["Borrowed Books"].append(b)
+
+                    messagebox.showinfo(
+                        "Borrow Book",
+                        "Happy reading!"
+                    )
+
+                break
+
+        else:
+            messagebox.showerror(
+                "Borrow Book",
+                "Book not present in library."
+            )
+
+
+def return_book():
+    user = get_user()
+
+    if user is None:
+        return
+
+    book = simpledialog.askstring(
+        "Return Book",
+        "Enter the name of the book you want to return:"
+    )
+
+    if book is None:
+        return
+
+    book = book.title()
+
+    if book in user["Borrowed Books"]:
+
+        user["Borrowed Books"].remove(book)
+        Books[book]["Quantity"] += 1
+
+        messagebox.showinfo(
+            "Return Book",
+            "Thank you for your prompt return of the book!"
+        )
+
+    else:
+        messagebox.showinfo(
+            "Return Book",
+            "You have not borrowed this book."
+        )
+
+
+def recommend_book():
+    genre = simpledialog.askstring(
+        "Book Recommendation",
+        "Enter the genre you want to read:"
+    )
+
+    if genre is None:
+        return
+
+    Rbooks = ()
+
+    for B in Books:
+
+        if Books[B]["Genre"].lower() == genre.lower() and Books[B]["Quantity"] > 0:
+            Rbooks = Rbooks + (B,)
+
+    if len(Rbooks) > 0:
+
+        recommendation = Rbooks[random.randint(0, len(Rbooks) - 1)]
+
+        messagebox.showinfo(
+            "Book Recommendation",
+            recommendation + " would suit you!"
+        )
+
+    else:
+
+        messagebox.showinfo(
+            "Book Recommendation",
+            "There are no books of this genre present in the library currently."
+        )
+
+
+def donate_book():
+    donation = simpledialog.askstring(
+        "Donate Book",
+        "Enter the name of the book you want to donate:"
+    )
+
+    if donation is None:
+        return
+
+    donation = donation.title()
+
+    if donation in Books:
+
+        Books[donation]["Quantity"] += 1
+
+    else:
+
+        Author = simpledialog.askstring(
+            "Donate Book",
+            "Enter the book's author:"
+        )
+
+        if Author is None:
+            return
+
+        Genre = simpledialog.askstring(
+            "Donate Book",
+            "Enter the book's genre:"
+        )
+
+        if Genre is None:
+            return
+
+        Books[donation] = {
+            "Author": Author,
+            "Genre": Genre,
+            "Quantity": 1
+        }
+
+    messagebox.showinfo(
+        "Donate Book",
+        "Thanks for donating!"
+    )
+
+
+def show_library_data():
+    user = get_user()
+
+    if user is None:
+        return
+
+    messagebox.showinfo(
+        "Your Library Data",
+        str(user)
+    )
+
+
+def show_available_books():
+    book_text = ""
+
+    for book in Books:
+
+        book_text += (
+            "Book: " + book +
+            "\nAuthor: " + Books[book]["Author"] +
+            "\nGenre: " + Books[book]["Genre"] +
+            "\nQuantity: " + str(Books[book]["Quantity"]) +
+            "\n\n"
+        )
+
+    messagebox.showinfo(
+        "Available Books",
+        book_text
+    )
+
+
+def join_library():
+    global nUsers
+
+    name = simpledialog.askstring(
+        "Join Library",
+        "Enter your name:"
+    )
+
+    if name is None:
+        return
+
+    name = name.title()
+
+    if name in users:
+        messagebox.showerror(
+            "Error",
+            "That name is already registered."
+        )
+        return
+
+    nUsers += 1
+
+    users[name] = {
+        "ID": nUsers,
+        "Borrowed Books": []
+    }
+
+    messagebox.showinfo(
+        "Welcome!",
+        name + " your library ID is " + str(nUsers)
+    )
+
+
+# ---------------- GUI ----------------
+
+root = tk.Tk()
+
+root.title("School Library")
+root.geometry("500x600")
+root.resizable(False, False)
+
+
+title = tk.Label(
+    root,
+    text="School Library",
+    font=("Arial", 24, "bold")
+)
+
+title.pack(pady=20)
+
+
+subtitle = tk.Label(
+    root,
+    text="Welcome to the Library Management System",
+    font=("Arial", 12)
+)
+
+subtitle.pack(pady=5)
+
+
+# Membership section
+
+membership_label = tk.Label(
+    root,
+    text="Are you a member of the library?",
+    font=("Arial", 14)
+)
+
+membership_label.pack(pady=15)
+
+
+member_frame = tk.Frame(root)
+member_frame.pack()
+
+
+yes_button = tk.Button(
+    member_frame,
+    text="Yes",
+    width=15,
+    command=lambda: show_member_menu()
+)
+
+yes_button.grid(row=0, column=0, padx=10)
+
+
+no_button = tk.Button(
+    member_frame,
+    text="No",
+    width=15,
+    command=join_library
+)
+
+no_button.grid(row=0, column=1, padx=10)
+
+
+def show_member_menu():
+
+    membership_label.pack_forget()
+    member_frame.pack_forget()
+
+    subtitle.config(
+        text="Select an option:"
+    )
+
+    menu_frame.pack(pady=10)
+
+
+menu_frame = tk.Frame(root)
+
+
+borrow_button = tk.Button(
+    menu_frame,
+    text="1. Borrow a Book",
+    width=30,
+    command=borrow_book
+)
+
+borrow_button.pack(pady=5)
+
+
+return_button = tk.Button(
+    menu_frame,
+    text="2. Return a Book",
+    width=30,
+    command=return_book
+)
+
+return_button.pack(pady=5)
+
+
+recommend_button = tk.Button(
+    menu_frame,
+    text="3. Get Book Recommendation",
+    width=30,
+    command=recommend_book
+)
+
+recommend_button.pack(pady=5)
+
+
+donate_button = tk.Button(
+    menu_frame,
+    text="4. Donate a Book",
+    width=30,
+    command=donate_book
+)
+
+donate_button.pack(pady=5)
+
+
+data_button = tk.Button(
+    menu_frame,
+    text="5. Show Your Library Data",
+    width=30,
+    command=show_library_data
+)
+
+data_button.pack(pady=5)
+
+
+books_button = tk.Button(
+    menu_frame,
+    text="6. Show Available Books",
+    width=30,
+    command=show_available_books
+)
+
+books_button.pack(pady=5)
+
+
+exit_button = tk.Button(
+    menu_frame,
+    text="7. Exit",
+    width=30,
+    command=root.destroy
+)
+
+exit_button.pack(pady=5)
+
+
+root.mainloop()
 
