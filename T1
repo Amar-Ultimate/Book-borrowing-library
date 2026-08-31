@@ -2,15 +2,15 @@ import mysql.connector
 import random
 import csv
 import os
-
+nID=3
 mycon = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="YOUR_PASSWORD",
+    password="password",
     database="library"
 )
-
 cursor = mycon.cursor()
+'''
 cursor.execute("""
 CREATE TABLE users(
     ID INT PRIMARY KEY,
@@ -33,11 +33,10 @@ file = open("borrowed_books.csv", "w", newline="")
 writer = csv.writer(file)
 writer.writerow(["User ID", "Book Name"])
 file.close()
-cursor.execute("INSERT INTO users VALUES('Amarthya',1)")
-cursor.execute("INSERT INTO users VALUES('Avyukt',2)")
-cursor.execute("INSERT INTO users VALUES('Ashwin',3)")
+cursor.execute("INSERT INTO users VALUES(1,'Amarthya')")
+cursor.execute("INSERT INTO users VALUES(2,'Avyukt')")
+cursor.execute("INSERT INTO users VALUES(3,'Ashwin')")
 mycon.commit()
-data = cursor.fetchall()
 cursor.execute("""INSERT INTO books VALUES('Percy Jackson','Rick Riordan','Fantasy',10 )""")
 cursor.execute("""INSERT INTO books VALUES('Harry Potter','J.K. Rowling','Fantasy', 1)""")
 cursor.execute("""INSERT INTO books VALUES('Hercule Poirot','Agatha Christie','Mystery',69)""")
@@ -45,12 +44,12 @@ cursor.execute("""INSERT INTO books VALUES('Bhagwat Gita', 'Maharishi Ved Vyasa'
 cursor.execute("""INSERT INTO books VALUES('IT','Stephen King','Horror',15) """)
 cursor.execute("""INSERT INTO books VALUES('The Shining','Stephen King', 'Horror', 23) """)
 mycon.commit()
-
+'''
 def check_user():
 
     while True:
 
-        name = input("Enter your name: ").title()
+        name = input("Enter your name: ").title().strip()
         ID = int(input("Enter your library ID: "))
         query = """ SELECT * FROM users WHERE Name=%s AND ID=%s """
         cursor.execute(query,(name, ID))
@@ -91,7 +90,7 @@ def already_borrowed(ID, book):
     return False
 
 while True:
-
+    
     entry = input(
         "\nAre you a member of the library? "
     )
@@ -110,7 +109,7 @@ while True:
         if c == 1:
 
             ID = check_user()
-            book = input("Enter the name of the book you want to borrow: ")
+            book = input("Enter the name of the book you want to borrow: ").strip()
             query = """SELECT * FROM books WHERE LOWER(Book_Name)=LOWER(%s)"""
             cursor.execute(query,(book,))
             data = cursor.fetchone()
@@ -298,9 +297,7 @@ while True:
             user_data = cursor.fetchone()
 
 
-            print(
-                "\n------ USER DATA ------"
-            )
+            print( "\n------ USER DATA ------")
 
             print(
                 "Name:",
@@ -315,9 +312,7 @@ while True:
 
             # Show borrowed books from CSV
 
-            print(
-                "Borrowed Books:"
-            )
+            print("Borrowed Books:")
 
 
             file = open(
@@ -348,9 +343,7 @@ while True:
 
             if found == False:
 
-                print(
-                    "No books borrowed."
-                )
+                print("No books borrowed.")
 
 
             file.close()
@@ -384,14 +377,14 @@ while True:
 
 
 
-
+    
     elif entry.lower() == "no":
 
         choice = input("Would you like to join the library? ")
 
         if choice.lower() == "yes":
 
-            name = input("Enter your name: ").title()
+            name = input("Enter your name: ").title().strip()
             
             query = """
             SELECT * FROM users
@@ -404,52 +397,35 @@ while True:
 
             if data != None:
 
-                print(
-                    "A member with this name already exists."
-                )
+                print("A member with this name already exists.")
 
 
             else:
+                nID = nID + 1
+                query = "INSERT INTO users VALUES({},'{}')".format(nID,name)
 
-                query = """
-                INSERT INTO users(Name)
-                VALUES(%s)
-                """
+            
 
-                cursor.execute(
-                    query,
-                    (name,)
-                )
+                cursor.execute(query)
 
                 mycon.commit()
 
 
-                print(
-                    "Welcome to the library!"
-                )
+                print("Welcome to the library!")
 
-                print(
-                    name,
-                    "your library ID is",
-                    cursor.lastrowid
-                )
+                print(name,"your library ID is",nID)
 
 
         else:
 
-            print(
-                "Ok, have a good day."
-            )
-
+            print("Ok, have a good day.")
             break
 
 
 
     else:
 
-        print(
-            "Invalid input."
-        )
+        print("Invalid input.")
 
 
 
