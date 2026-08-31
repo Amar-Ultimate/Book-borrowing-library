@@ -10,7 +10,7 @@ mycon = mysql.connector.connect(
     database="library"
 )
 cursor = mycon.cursor()
-'''
+
 cursor.execute("""
 CREATE TABLE users(
     ID INT PRIMARY KEY,
@@ -44,7 +44,7 @@ cursor.execute("""INSERT INTO books VALUES('Bhagwat Gita', 'Maharishi Ved Vyasa'
 cursor.execute("""INSERT INTO books VALUES('IT','Stephen King','Horror',15) """)
 cursor.execute("""INSERT INTO books VALUES('The Shining','Stephen King', 'Horror', 23) """)
 mycon.commit()
-'''
+
 def check_user():
 
     while True:
