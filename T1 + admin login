@@ -1,0 +1,498 @@
+import mysql.connector
+import random
+import csv
+import os
+
+nID=3
+password = "password"
+
+mycon = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    database="library"
+)
+cursor = mycon.cursor()
+
+cursor.execute("""
+CREATE TABLE users(
+    ID INT PRIMARY KEY,
+    Name VARCHAR(50)
+)
+""")
+
+cursor.execute("""
+CREATE TABLE books(
+    Book_Name VARCHAR(100) PRIMARY KEY,
+    Author VARCHAR(100),
+    Genre VARCHAR(50),
+    Quantity INT
+)
+""")
+
+mycon.commit()
+
+file = open("borrowed_books.csv", "w", newline="")
+writer = csv.writer(file)
+writer.writerow(["User ID", "Book Name"])
+file.close()
+file = open("donors.csv","w",newline="")
+writer = csv.writer(file)
+writer.writerow(["Donor Name", "Book donated"])
+file.close()
+
+cursor.execute("INSERT INTO users VALUES(1,'Amarthya')")
+cursor.execute("INSERT INTO users VALUES(2,'Avyukt')")
+cursor.execute("INSERT INTO users VALUES(3,'Ashwin')")
+mycon.commit()
+cursor.execute("""INSERT INTO books VALUES('Percy Jackson','Rick Riordan','Fantasy',10 )""")
+cursor.execute("""INSERT INTO books VALUES('Harry Potter','J.K. Rowling','Fantasy', 1)""")
+cursor.execute("""INSERT INTO books VALUES('Hercule Poirot','Agatha Christie','Mystery',69)""")
+cursor.execute("""INSERT INTO books VALUES('Bhagwat Gita', 'Maharishi Ved Vyasa','Religion',5)""")
+cursor.execute("""INSERT INTO books VALUES('IT','Stephen King','Horror',15) """)
+cursor.execute("""INSERT INTO books VALUES('The Shining','Stephen King', 'Horror', 23) """)
+mycon.commit()
+
+def check_user():
+
+    while True:
+
+        name = input("Enter your name: ").title().strip()
+        ID = int(input("Enter your library ID: "))
+        query = """ SELECT * FROM users WHERE Name=%s AND ID=%s """
+        cursor.execute(query,(name, ID))
+        data = cursor.fetchone()
+
+        if data != None:
+
+            return ID
+
+        else:
+
+            print("Incorrect name or ID. Please try again.")
+
+def already_borrowed(ID, book):
+
+    file = open(
+        "borrowed_books.csv",
+        "r",
+        newline=""
+    )
+
+    reader = csv.reader(file)
+
+    next(reader)
+
+    for row in reader:
+
+        if row[0] == str(ID):
+
+            if row[1].lower() == book.lower():
+
+                file.close()
+
+                return True
+
+    file.close()
+
+    return False
+
+while True:
+    
+    entry = input("\nAre you a librarian? ")
+
+    if entry.lower() == "yes":
+
+        librarian_password = input("Enter the librarian password: ")
+
+        if librarian_password == password:
+
+            print("\n1. Change password")
+            print("2. Add books")
+            print("3. Delete books")
+            print("4. View Donors") 
+            print("5. Exit")
+            
+
+            c = int(input("Enter your choice: "))
+
+            if c == 1:
+                password = input("Enter new password: ")
+
+            elif c == 2:
+                name = input("Enter book name: ")
+                author = input("Enter author name: ")
+                genre = input("Enter book genre: ")
+                cursor.execute(
+                    """INSERT INTO books VALUES(%s,%s,%s,%s)""",
+                    (name, author, genre, 1)
+                )
+                mycon.commit()
+
+
+
+            elif c == 3:
+                name = input("Enter name of book you want to delete: ")
+                author = input("Enter author name of book you want to delete: ")
+                cursor.execute(
+                    """DELETE FROM books WHERE Book_Name=%s AND Author=%s""",
+                    (name, author)
+                )
+                mycon.commit()
+            elif c ==4:
+                f = open('donors.csv',"r",newline="")
+                csvr = csv.reader(f)
+                next(csvr)
+                for i in csvr:
+                    print(i)         
+                f.close()
+            elif c == 5:
+
+                print("Exiting...")
+                break
+
+            else:
+
+                print("Invalid choice.")
+
+        else:
+
+            print("Incorrect password.")
+
+    elif entry.lower() == "no":
+
+        choice = input("Are you a member of the library? ")
+
+        if choice.lower() == "yes":
+
+            print("\n1. Borrow a book")
+            print("2. Return a book")
+            print("3. Get book recommendation")
+            print("4. Donate a book")
+            print("5. Show your library data")
+            print("6. Show available books")
+            print("7. Exit")
+
+            c = int(input("Enter your choice: "))
+            if c == 1:
+
+                ID = check_user()
+                book = input("Enter the name of the book you want to borrow: ").strip()
+                query = """SELECT * FROM books WHERE LOWER(Book_Name)=LOWER(%s)"""
+                cursor.execute(query,(book,))
+                data = cursor.fetchone()
+                if data == None:
+                    print("Book not present in library.")
+
+                else:
+
+                    actual_book = data[0]
+
+                    quantity = data[3]
+                    if already_borrowed(ID, actual_book):
+
+                        print("You have already borrowed this book.")
+                    elif quantity == 0:
+                        print("Book not available currently.")
+
+
+                    else:
+                        file = open("borrowed_books.csv","a",newline="")
+                        writer = csv.writer(file)
+                        writer.writerow([ID, actual_book])
+                        file.close()
+
+                        query = """
+                        UPDATE books
+                        SET Quantity = Quantity - 1
+                        WHERE Book_Name=%s
+                        """
+
+                        cursor.execute(
+                            query,
+                            (actual_book,)
+                        )
+
+                        mycon.commit()
+
+
+                        print("Happy reading!")
+
+
+
+
+            elif c == 2:
+                ID = check_user()
+                book = input("Enter the name of the book you want to return: ")
+                actual_book = ""
+                file = open("borrowed_books.csv","r",newline="")
+                reader = csv.reader(file)
+                next(reader)
+                for row in reader:
+                    if row[0] == str(ID):
+                        if row[1].lower() == book.lower():
+                            actual_book = row[1]
+                            break
+
+
+                file.close()
+
+
+                if actual_book == "":
+                    print("You have not borrowed this book.")
+
+                else:
+                    file = open("borrowed_books.csv","r",newline="")
+                    temp_file = open("temp.csv","w",newline="")
+                    reader = csv.reader(file)
+                    writer = csv.writer(temp_file)
+                    for row in reader:
+                        if not (len(row) > 1 and row[0] == str(ID) and row[1].lower() == actual_book.lower()):
+                            writer.writerow(row)
+                    file.close()
+                    temp_file.close()
+                    os.remove("borrowed_books.csv")
+                    os.rename("temp.csv","borrowed_books.csv")
+                    query = """
+                    UPDATE books
+                    SET Quantity = Quantity + 1
+                    WHERE LOWER(Book_Name) = LOWER(%s)
+                    """
+
+                    cursor.execute(query,(actual_book,))
+                    mycon.commit()
+                    print("Thank you for returning the book!")
+
+
+
+            elif c == 3:
+                genre = input("Enter the genre you want to read: ")
+                query = """
+                SELECT Book_Name
+                FROM books
+                WHERE LOWER(Genre)=LOWER(%s)
+                AND Quantity > 0
+                """
+
+                cursor.execute(query,(genre,))
+                data = cursor.fetchall()
+                if len(data) > 0:
+                    recommendation = random.choice(data)
+                    print(recommendation[0], "would suit you.")
+
+                else:
+
+                    print("There are no books of this genre available currently.")
+
+
+            elif c == 4:
+                name = input("Enter your name: ") 
+                donation = input("Enter the name of the book you want to donate: ").title()
+
+
+                query = """
+                SELECT * FROM books
+                WHERE Book_Name=%s
+                """
+
+                cursor.execute(query,(donation,))
+
+                data = cursor.fetchone()
+
+
+                if data != None:
+
+                    query = """
+                    UPDATE books
+                    SET Quantity = Quantity + 1
+                    WHERE Book_Name=%s
+                    """
+
+                    cursor.execute(
+                        query,
+                        (donation,)
+                    )
+
+
+                else:
+
+                    Author = input( "Enter the book's author: ")
+
+                    Genre = input("Enter the book's genre: ")
+                    
+                    query = """
+                    INSERT INTO books
+                    VALUES(%s, %s, %s, %s)
+                    """
+
+                    cursor.execute(
+                        query,
+                        (
+                            donation,
+                            Author,
+                            Genre,
+                            1
+                        )
+                    )
+
+            
+                mycon.commit()
+
+                print("Thanks for donating!")
+
+                file = open("donors.csv","a",newline="")
+                writer = csv.writer(file)
+                writer.writerow([name, donation])
+                file.close()
+            elif c == 5:
+
+                ID = check_user()
+
+                query = """
+                SELECT * FROM users
+                WHERE ID=%s
+                """
+
+                cursor.execute(
+                    query,
+                    (ID,)
+                )
+
+
+                user_data = cursor.fetchone()
+
+
+                print( "\n------ USER DATA ------")
+
+                print(
+                    "Name:",
+                    user_data[1]
+                )
+
+                print(
+                    "Library ID:",
+                    user_data[0]
+                )
+
+
+                # Show borrowed books from CSV
+
+                print("Borrowed Books:")
+
+
+                file = open(
+                    "borrowed_books.csv",
+                    "r",
+                    newline=""
+                )
+
+                reader = csv.reader(file)
+
+                next(reader)
+
+
+                found = False
+
+
+                for row in reader:
+
+                    if row[0] == str(ID):
+
+                        print(
+                            "-",
+                            row[1]
+                        )
+
+                        found = True
+
+
+                if found == False:
+
+                    print("No books borrowed.")
+
+
+                file.close()
+
+
+
+            elif c == 6:
+                query = """SELECT * FROM books WHERE Quantity > 0"""
+                cursor.execute(query)
+                data = cursor.fetchall()
+
+                print("\n------ AVAILABLE BOOKS ------")
+
+                for book in data:
+                    print(book)
+
+
+
+
+
+            elif c == 7:
+
+                print("Hope you visit the library again soon!")
+                print("Exiting...")
+                break
+
+            else:
+
+                print("Invalid choice.")
+
+
+
+        else:
+
+            choice = input("Would you like to join the library? ")
+
+            if choice.lower() == "yes":
+
+                name = input("Enter your name: ").title().strip()
+            
+                query = """
+                SELECT * FROM users
+                WHERE Name=%s
+                """
+
+                cursor.execute(query,(name,))
+                data = cursor.fetchone()
+
+
+                if data != None:
+
+                    print("A member with this name already exists.")
+
+
+                else:
+                    nID = nID + 1
+                    query = "INSERT INTO users VALUES({},'{}')".format(nID,name)
+
+            
+
+                    cursor.execute(query)
+
+                    mycon.commit()
+
+
+                    print("Welcome to the library!")
+
+                    print(name,"your library ID is",nID)
+
+
+            else:
+
+                print("Ok, have a good day.")
+                break
+
+
+
+    else:
+
+
+        print("Invalid input.")
+
+
+
+
+cursor.close()
+mycon.close()
