@@ -1,0 +1,2292 @@
+import mysql.connector
+import random
+import csv
+import os
+import tkinter as tk
+from tkinter import messagebox
+
+
+# ============================================================
+# ORIGINAL LIBRARY CODE
+# ============================================================
+
+nID = 3
+password = "password"
+
+mycon = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    database="library"
+)
+
+cursor = mycon.cursor()
+
+
+# ============================================================
+# DATABASE TABLES
+# ============================================================
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users(
+    ID INT PRIMARY KEY,
+    Name VARCHAR(50)
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS books(
+    Book_Name VARCHAR(100) PRIMARY KEY,
+    Author VARCHAR(100),
+    Genre VARCHAR(50),
+    Quantity INT
+)
+""")
+
+mycon.commit()
+
+
+# ============================================================
+# CSV FILES
+# ============================================================
+
+if not os.path.exists("borrowed_books.csv"):
+
+    file = open("borrowed_books.csv", "w", newline="")
+
+    writer = csv.writer(file)
+
+    writer.writerow(["User ID", "Book Name"])
+
+    file.close()
+
+
+if not os.path.exists("donors.csv"):
+
+    file = open("donors.csv", "w", newline="")
+
+    writer = csv.writer(file)
+
+    writer.writerow(["Donor Name", "Book donated"])
+
+    file.close()
+
+
+# ============================================================
+# INSERT ORIGINAL SAMPLE DATA
+# ============================================================
+
+cursor.execute("SELECT COUNT(*) FROM users")
+
+user_count = cursor.fetchone()[0]
+
+if user_count == 0:
+
+    cursor.execute(
+        "INSERT INTO users VALUES(1,'Amarthya')"
+    )
+
+    cursor.execute(
+        "INSERT INTO users VALUES(2,'Avyukt')"
+    )
+
+    cursor.execute(
+        "INSERT INTO users VALUES(3,'Ashwin')"
+    )
+
+
+cursor.execute("SELECT COUNT(*) FROM books")
+
+book_count = cursor.fetchone()[0]
+
+if book_count == 0:
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('Percy Jackson','Rick Riordan','Fantasy',10)"""
+    )
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('Harry Potter','J.K. Rowling','Fantasy',1)"""
+    )
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('Hercule Poirot','Agatha Christie','Mystery',69)"""
+    )
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('Bhagwat Gita','Maharishi Ved Vyasa','Religion',5)"""
+    )
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('IT','Stephen King','Horror',15)"""
+    )
+
+    cursor.execute(
+        """INSERT INTO books
+        VALUES('The Shining','Stephen King','Horror',23)"""
+    )
+
+
+mycon.commit()
+
+
+# ============================================================
+# ORIGINAL FUNCTION
+# ============================================================
+
+def already_borrowed(ID, book):
+
+    file = open(
+        "borrowed_books.csv",
+        "r",
+        newline=""
+    )
+
+    reader = csv.reader(file)
+
+    next(reader)
+
+    for row in reader:
+
+        if row[0] == str(ID):
+
+            if row[1].lower() == book.lower():
+
+                file.close()
+
+                return True
+
+    file.close()
+
+    return False
+
+
+# ============================================================
+# GUI SETTINGS
+# ============================================================
+
+root = tk.Tk()
+
+root.title("Library Management System")
+
+root.geometry("1000x650")
+
+root.minsize(850, 550)
+
+
+BG = "#F4F1EA"
+DARK = "#263238"
+ACCENT = "#5D4037"
+LIGHT = "#FFFDF8"
+SECONDARY = "#795548"
+TEXT = "#2D2D2D"
+GREEN = "#4F6F52"
+
+
+root.configure(bg=BG)
+
+
+TITLE_FONT = ("Georgia", 28, "bold")
+
+SUBTITLE_FONT = ("Georgia", 15)
+
+BUTTON_FONT = ("Arial", 13, "bold")
+
+NORMAL_FONT = ("Arial", 12)
+
+
+# ============================================================
+# GENERAL GUI FUNCTIONS
+# ============================================================
+
+def clear_window():
+
+    for widget in root.winfo_children():
+
+        widget.destroy()
+
+
+def title_label(parent, text):
+
+    label = tk.Label(
+        parent,
+        text=text,
+        font=TITLE_FONT,
+        bg=BG,
+        fg=DARK
+    )
+
+    label.pack(pady=(35, 10))
+
+    return label
+
+
+def subtitle_label(parent, text):
+
+    label = tk.Label(
+        parent,
+        text=text,
+        font=SUBTITLE_FONT,
+        bg=BG,
+        fg=SECONDARY
+    )
+
+    label.pack(pady=(0, 25))
+
+    return label
+
+
+def create_button(parent, text, command, width=25):
+
+    button = tk.Button(
+        parent,
+        text=text,
+        command=command,
+        font=BUTTON_FONT,
+        width=width,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        activebackground=SECONDARY,
+        activeforeground="white",
+        relief="flat",
+        cursor="hand2"
+    )
+
+    button.pack(pady=7)
+
+    return button
+
+
+def back_button(parent, command):
+
+    button = tk.Button(
+        parent,
+        text="← Back",
+        command=command,
+        font=("Arial", 11),
+        bg=BG,
+        fg=ACCENT,
+        relief="flat",
+        cursor="hand2"
+    )
+
+    button.pack(pady=15)
+
+
+# ============================================================
+# SELECTION WINDOW
+# ============================================================
+
+def selection_window(title, items, callback, display_function=None):
+
+    window = tk.Toplevel(root)
+
+    window.title(title)
+
+    window.geometry("700x500")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text=title,
+        font=("Georgia", 22, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=20)
+
+
+    frame = tk.Frame(
+        window,
+        bg=BG
+    )
+
+    frame.pack(
+        fill="both",
+        expand=True,
+        padx=35,
+        pady=10
+    )
+
+
+    scrollbar = tk.Scrollbar(frame)
+
+    scrollbar.pack(
+        side="right",
+        fill="y"
+    )
+
+
+    listbox = tk.Listbox(
+        frame,
+        font=("Arial", 13),
+        bg=LIGHT,
+        fg=TEXT,
+        selectbackground=ACCENT,
+        selectforeground="white",
+        activestyle="none",
+        yscrollcommand=scrollbar.set
+    )
+
+    listbox.pack(
+        side="left",
+        fill="both",
+        expand=True
+    )
+
+
+    scrollbar.config(
+        command=listbox.yview
+    )
+
+
+    for item in items:
+
+        if display_function:
+
+            listbox.insert(
+                tk.END,
+                display_function(item)
+            )
+
+        else:
+
+            listbox.insert(
+                tk.END,
+                item
+            )
+
+
+    def choose():
+
+        selected = listbox.curselection()
+
+        if not selected:
+
+            messagebox.showwarning(
+                "Selection Required",
+                "Please select an option.",
+                parent=window
+            )
+
+            return
+
+
+        item = items[selected[0]]
+
+        window.destroy()
+
+        callback(item)
+
+
+    tk.Button(
+        window,
+        text="Select",
+        command=choose,
+        font=BUTTON_FONT,
+        width=20,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+# ============================================================
+# MEMBER LOGIN
+# ============================================================
+
+def check_user():
+
+    window = tk.Toplevel(root)
+
+    window.title("Member Login")
+
+    window.geometry("500x380")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Member Login",
+        font=("Georgia", 24, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=25)
+
+
+    tk.Label(
+        window,
+        text="Enter your name",
+        font=NORMAL_FONT,
+        bg=BG
+    ).pack()
+
+
+    name_entry = tk.Entry(
+        window,
+        font=("Arial", 14),
+        width=30,
+        bg=LIGHT
+    )
+
+    name_entry.pack(pady=8)
+
+
+    tk.Label(
+        window,
+        text="Enter your library ID",
+        font=NORMAL_FONT,
+        bg=BG
+    ).pack()
+
+
+    id_entry = tk.Entry(
+        window,
+        font=("Arial", 14),
+        width=30,
+        bg=LIGHT
+    )
+
+    id_entry.pack(pady=8)
+
+
+    result = {
+        "ID": None
+    }
+
+
+    def login():
+
+        try:
+
+            name = name_entry.get().title().strip()
+
+            ID = int(id_entry.get())
+
+        except ValueError:
+
+            messagebox.showerror(
+                "Invalid ID",
+                "Library ID must be a number.",
+                parent=window
+            )
+
+            return
+
+
+        query = """
+        SELECT * FROM users
+        WHERE Name=%s AND ID=%s
+        """
+
+
+        cursor.execute(
+            query,
+            (name, ID)
+        )
+
+
+        data = cursor.fetchone()
+
+
+        if data is not None:
+
+            result["ID"] = ID
+
+            window.destroy()
+
+        else:
+
+            messagebox.showerror(
+                "Login Failed",
+                "Incorrect name or ID.",
+                parent=window
+            )
+
+
+    tk.Button(
+        window,
+        text="Login",
+        command=login,
+        font=BUTTON_FONT,
+        width=20,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+    root.wait_window(window)
+
+
+    return result["ID"]
+
+
+# ============================================================
+# MEMBER LOGIN -> USER MENU
+# ============================================================
+
+def member_login():
+
+    ID = check_user()
+
+    if ID is not None:
+
+        user_menu(ID)
+
+
+# ============================================================
+# BORROW BOOK
+# ============================================================
+
+def borrow_book(ID):
+
+    query = """
+    SELECT * FROM books
+    WHERE Quantity > 0
+    """
+
+    cursor.execute(query)
+
+    data = cursor.fetchall()
+
+
+    if len(data) == 0:
+
+        messagebox.showinfo(
+            "No Books",
+            "There are currently no books available."
+        )
+
+        return
+
+
+    def selected_book(book_data):
+
+        actual_book = book_data[0]
+
+        quantity = book_data[3]
+
+
+        if already_borrowed(
+            ID,
+            actual_book
+        ):
+
+            messagebox.showwarning(
+                "Already Borrowed",
+                "You have already borrowed this book."
+            )
+
+
+        elif quantity == 0:
+
+            messagebox.showinfo(
+                "Unavailable",
+                "Book not available currently."
+            )
+
+
+        else:
+
+            file = open(
+                "borrowed_books.csv",
+                "a",
+                newline=""
+            )
+
+            writer = csv.writer(file)
+
+            writer.writerow(
+                [ID, actual_book]
+            )
+
+            file.close()
+
+
+            query = """
+            UPDATE books
+            SET Quantity = Quantity - 1
+            WHERE Book_Name=%s
+            """
+
+
+            cursor.execute(
+                query,
+                (actual_book,)
+            )
+
+
+            mycon.commit()
+
+
+            messagebox.showinfo(
+                "Happy Reading!",
+                "You successfully borrowed:\n\n"
+                + actual_book
+            )
+
+
+    selection_window(
+        "Select a Book to Borrow",
+        data,
+        selected_book,
+        lambda x:
+            f"{x[0]}   |   {x[1]}   |   {x[2]}   |   Available: {x[3]}"
+    )
+
+
+# ============================================================
+# RETURN BOOK
+# ============================================================
+
+def return_book(ID):
+
+    borrowed = []
+
+
+    file = open(
+        "borrowed_books.csv",
+        "r",
+        newline=""
+    )
+
+
+    reader = csv.reader(file)
+
+    next(reader)
+
+
+    for row in reader:
+
+        if row[0] == str(ID):
+
+            borrowed.append(
+                row[1]
+            )
+
+
+    file.close()
+
+
+    if len(borrowed) == 0:
+
+        messagebox.showinfo(
+            "No Books",
+            "You have no borrowed books to return."
+        )
+
+        return
+
+
+    def selected_book(book):
+
+        actual_book = ""
+
+
+        file = open(
+            "borrowed_books.csv",
+            "r",
+            newline=""
+        )
+
+
+        reader = csv.reader(file)
+
+        next(reader)
+
+
+        for row in reader:
+
+            if row[0] == str(ID):
+
+                if row[1].lower() == book.lower():
+
+                    actual_book = row[1]
+
+                    break
+
+
+        file.close()
+
+
+        if actual_book == "":
+
+            messagebox.showwarning(
+                "Not Borrowed",
+                "You have not borrowed this book."
+            )
+
+
+        else:
+
+            file = open(
+                "borrowed_books.csv",
+                "r",
+                newline=""
+            )
+
+
+            temp_file = open(
+                "temp.csv",
+                "w",
+                newline=""
+            )
+
+
+            reader = csv.reader(file)
+
+            writer = csv.writer(temp_file)
+
+
+            for row in reader:
+
+                if not (
+                    len(row) > 1
+                    and row[0] == str(ID)
+                    and row[1].lower()
+                    == actual_book.lower()
+                ):
+
+                    writer.writerow(row)
+
+
+            file.close()
+
+            temp_file.close()
+
+
+            os.remove(
+                "borrowed_books.csv"
+            )
+
+
+            os.rename(
+                "temp.csv",
+                "borrowed_books.csv"
+            )
+
+
+            query = """
+            UPDATE books
+            SET Quantity = Quantity + 1
+            WHERE LOWER(Book_Name) = LOWER(%s)
+            """
+
+
+            cursor.execute(
+                query,
+                (actual_book,)
+            )
+
+
+            mycon.commit()
+
+
+            messagebox.showinfo(
+                "Book Returned",
+                "Thank you for returning:\n\n"
+                + actual_book
+            )
+
+
+    selection_window(
+        "Select a Book to Return",
+        borrowed,
+        selected_book
+    )
+
+
+# ============================================================
+# RECOMMENDATION
+# ============================================================
+
+def recommendation():
+
+    query = """
+    SELECT DISTINCT Genre
+    FROM books
+    WHERE Quantity > 0
+    """
+
+
+    cursor.execute(query)
+
+    data = cursor.fetchall()
+
+
+    genres = [
+        row[0]
+        for row in data
+    ]
+
+
+    if len(genres) == 0:
+
+        messagebox.showinfo(
+            "Recommendations",
+            "There are no available genres currently."
+        )
+
+        return
+
+
+    def selected_genre(genre):
+
+        query = """
+        SELECT Book_Name
+        FROM books
+        WHERE LOWER(Genre)=LOWER(%s)
+        AND Quantity > 0
+        """
+
+
+        cursor.execute(
+            query,
+            (genre,)
+        )
+
+
+        data = cursor.fetchall()
+
+
+        if len(data) > 0:
+
+            recommendation = random.choice(
+                data
+            )
+
+
+            messagebox.showinfo(
+                "Your Recommendation",
+                recommendation[0]
+                + "\n\nwould suit you!"
+            )
+
+
+        else:
+
+            messagebox.showinfo(
+                "No Books",
+                "There are no books of this genre available currently."
+            )
+
+
+    selection_window(
+        "Choose a Genre",
+        genres,
+        selected_genre
+    )
+
+
+# ============================================================
+# DONATE BOOK
+# ============================================================
+
+def donation_form():
+
+    window = tk.Toplevel(root)
+
+    window.title("Donate a Book")
+
+    window.geometry("650x600")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Donate a Book",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=20)
+
+
+    tk.Label(
+        window,
+        text="Please enter the donation details below",
+        font=SUBTITLE_FONT,
+        bg=BG,
+        fg=SECONDARY
+    ).pack(pady=(0, 20))
+
+
+    form = tk.Frame(
+        window,
+        bg=BG
+    )
+
+    form.pack()
+
+
+    tk.Label(
+        form,
+        text="Your Name",
+        font=NORMAL_FONT,
+        bg=BG
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+        pady=8
+    )
+
+
+    name_entry = tk.Entry(
+        form,
+        font=("Arial", 14),
+        width=35,
+        bg=LIGHT
+    )
+
+
+    name_entry.grid(
+        row=0,
+        column=1,
+        pady=8,
+        padx=10
+    )
+
+
+    tk.Label(
+        form,
+        text="Book Name",
+        font=NORMAL_FONT,
+        bg=BG
+    ).grid(
+        row=1,
+        column=0,
+        sticky="w",
+        pady=8
+    )
+
+
+    donation_entry = tk.Entry(
+        form,
+        font=("Arial", 14),
+        width=35,
+        bg=LIGHT
+    )
+
+
+    donation_entry.grid(
+        row=1,
+        column=1,
+        pady=8,
+        padx=10
+    )
+
+
+    tk.Label(
+        form,
+        text="Author",
+        font=NORMAL_FONT,
+        bg=BG
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        pady=8
+    )
+
+
+    author_entry = tk.Entry(
+        form,
+        font=("Arial", 14),
+        width=35,
+        bg=LIGHT
+    )
+
+
+    author_entry.grid(
+        row=2,
+        column=1,
+        pady=8,
+        padx=10
+    )
+
+
+    tk.Label(
+        form,
+        text="Genre",
+        font=NORMAL_FONT,
+        bg=BG
+    ).grid(
+        row=3,
+        column=0,
+        sticky="w",
+        pady=8
+    )
+
+
+    genre_entry = tk.Entry(
+        form,
+        font=("Arial", 14),
+        width=35,
+        bg=LIGHT
+    )
+
+
+    genre_entry.grid(
+        row=3,
+        column=1,
+        pady=8,
+        padx=10
+    )
+
+
+    tk.Label(
+        window,
+        text="Author and genre are only needed for a new book.",
+        font=("Arial", 10),
+        bg=BG,
+        fg=SECONDARY
+    ).pack(pady=10)
+
+
+    def donate():
+
+        name = name_entry.get().strip()
+
+        donation = donation_entry.get().title().strip()
+
+        Author = author_entry.get().strip()
+
+        Genre = genre_entry.get().strip()
+
+
+        if name == "" or donation == "":
+
+            messagebox.showwarning(
+                "Missing Information",
+                "Please enter your name and the book name.",
+                parent=window
+            )
+
+            return
+
+
+        query = """
+        SELECT * FROM books
+        WHERE LOWER(Book_Name)=LOWER(%s)
+        """
+
+
+        cursor.execute(
+            query,
+            (donation,)
+        )
+
+
+        data = cursor.fetchone()
+
+
+        if data is not None:
+
+            query = """
+            UPDATE books
+            SET Quantity = Quantity + 1
+            WHERE Book_Name=%s
+            """
+
+
+            cursor.execute(
+                query,
+                (data[0],)
+            )
+
+
+        else:
+
+            if Author == "" or Genre == "":
+
+                messagebox.showwarning(
+                    "Missing Information",
+                    "For a new book, please enter the author and genre.",
+                    parent=window
+                )
+
+                return
+
+
+            query = """
+            INSERT INTO books
+            VALUES(%s, %s, %s, %s)
+            """
+
+
+            cursor.execute(
+                query,
+                (
+                    donation,
+                    Author,
+                    Genre,
+                    1
+                )
+            )
+
+
+        mycon.commit()
+
+
+        file = open(
+            "donors.csv",
+            "a",
+            newline=""
+        )
+
+
+        writer = csv.writer(file)
+
+
+        writer.writerow(
+            [name, donation]
+        )
+
+
+        file.close()
+
+
+        messagebox.showinfo(
+            "Thank You!",
+            "Thanks for donating!\n\n"
+            + donation,
+            parent=window
+        )
+
+
+        window.destroy()
+
+
+    tk.Button(
+        window,
+        text="Donate Book",
+        command=donate,
+        font=BUTTON_FONT,
+        width=25,
+        height=2,
+        bg=GREEN,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+# ============================================================
+# SHOW USER DATA
+# ============================================================
+
+def show_user_data(ID):
+
+    query = """
+    SELECT * FROM users
+    WHERE ID=%s
+    """
+
+
+    cursor.execute(
+        query,
+        (ID,)
+    )
+
+
+    user_data = cursor.fetchone()
+
+
+    window = tk.Toplevel(root)
+
+    window.title("My Library Data")
+
+    window.geometry("600x550")
+
+    window.configure(bg=BG)
+
+
+    tk.Label(
+        window,
+        text="My Library Data",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=25)
+
+
+    tk.Label(
+        window,
+        text="Name: " + str(user_data[1]),
+        font=("Arial", 14),
+        bg=BG,
+        fg=TEXT
+    ).pack(pady=8)
+
+
+    tk.Label(
+        window,
+        text="Library ID: " + str(user_data[0]),
+        font=("Arial", 14),
+        bg=BG,
+        fg=TEXT
+    ).pack(pady=8)
+
+
+    tk.Label(
+        window,
+        text="Borrowed Books",
+        font=("Georgia", 18, "bold"),
+        bg=BG,
+        fg=ACCENT
+    ).pack(pady=(30, 10))
+
+
+    listbox = tk.Listbox(
+        window,
+        font=("Arial", 13),
+        width=45,
+        height=10,
+        bg=LIGHT,
+        fg=TEXT
+    )
+
+
+    listbox.pack(
+        padx=30
+    )
+
+
+    file = open(
+        "borrowed_books.csv",
+        "r",
+        newline=""
+    )
+
+
+    reader = csv.reader(file)
+
+    next(reader)
+
+
+    found = False
+
+
+    for row in reader:
+
+        if row[0] == str(ID):
+
+            listbox.insert(
+                tk.END,
+                "• " + row[1]
+            )
+
+            found = True
+
+
+    file.close()
+
+
+    if found == False:
+
+        listbox.insert(
+            tk.END,
+            "No books borrowed."
+        )
+
+
+# ============================================================
+# SHOW AVAILABLE BOOKS
+# ============================================================
+
+def show_available_books():
+
+    query = """
+    SELECT * FROM books
+    WHERE Quantity > 0
+    """
+
+
+    cursor.execute(query)
+
+    data = cursor.fetchall()
+
+
+    if len(data) == 0:
+
+        messagebox.showinfo(
+            "Available Books",
+            "There are currently no available books."
+        )
+
+        return
+
+
+    selection_window(
+        "Available Books",
+        data,
+        lambda x: None,
+        lambda x:
+            f"{x[0]}   |   {x[1]}   |   {x[2]}   |   Available: {x[3]}"
+    )
+
+
+# ============================================================
+# JOIN LIBRARY
+# ============================================================
+
+def join_library():
+
+    window = tk.Toplevel(root)
+
+    window.title("Join the Library")
+
+    window.geometry("550x350")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Join the Library",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=30)
+
+
+    tk.Label(
+        window,
+        text="Enter your name",
+        font=NORMAL_FONT,
+        bg=BG
+    ).pack()
+
+
+    name_entry = tk.Entry(
+        window,
+        font=("Arial", 15),
+        width=30,
+        bg=LIGHT
+    )
+
+
+    name_entry.pack(pady=12)
+
+
+    def join():
+
+        global nID
+
+
+        name = name_entry.get().title().strip()
+
+
+        if name == "":
+
+            messagebox.showwarning(
+                "Missing Name",
+                "Please enter your name.",
+                parent=window
+            )
+
+            return
+
+
+        query = """
+        SELECT * FROM users
+        WHERE Name=%s
+        """
+
+
+        cursor.execute(
+            query,
+            (name,)
+        )
+
+
+        data = cursor.fetchone()
+
+
+        if data is not None:
+
+            messagebox.showwarning(
+                "Already a Member",
+                "A member with this name already exists.",
+                parent=window
+            )
+
+
+        else:
+
+            cursor.execute(
+                "SELECT MAX(ID) FROM users"
+            )
+
+
+            maximum = cursor.fetchone()[0]
+
+
+            if maximum is None:
+
+                nID = 1
+
+            else:
+
+                nID = maximum + 1
+
+
+            query = """
+            INSERT INTO users
+            VALUES(%s,%s)
+            """
+
+
+            cursor.execute(
+                query,
+                (nID, name)
+            )
+
+
+            mycon.commit()
+
+
+            messagebox.showinfo(
+                "Welcome!",
+                name
+                + ", welcome to the library!\n\n"
+                + "Your library ID is: "
+                + str(nID),
+                parent=window
+            )
+
+
+            window.destroy()
+
+
+    tk.Button(
+        window,
+        text="Join Library",
+        command=join,
+        font=BUTTON_FONT,
+        width=20,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+# ============================================================
+# USER MENU
+# ============================================================
+
+def user_menu(ID):
+
+    clear_window()
+
+
+    title_label(
+        root,
+        "Member's Library"
+    )
+
+
+    subtitle_label(
+        root,
+        "What would you like to do?"
+    )
+
+
+    create_button(
+        root,
+        "📖  Borrow a Book",
+        lambda: borrow_book(ID)
+    )
+
+
+    create_button(
+        root,
+        "↩  Return a Book",
+        lambda: return_book(ID)
+    )
+
+
+    create_button(
+        root,
+        "✨  Get a Recommendation",
+        recommendation
+    )
+
+
+    create_button(
+        root,
+        "🎁  Donate a Book",
+        donation_form
+    )
+
+
+    create_button(
+        root,
+        "👤  Show My Library Data",
+        lambda: show_user_data(ID)
+    )
+
+
+    create_button(
+        root,
+        "📚  Show Available Books",
+        show_available_books
+    )
+
+
+    create_button(
+        root,
+        "←  Back to Main Menu",
+        main_menu
+    )
+
+
+# ============================================================
+# LIBRARIAN LOGIN
+# ============================================================
+
+def librarian_login():
+
+    window = tk.Toplevel(root)
+
+    window.title("Librarian Login")
+
+    window.geometry("500x350")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Librarian Login",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=30)
+
+
+    tk.Label(
+        window,
+        text="Enter librarian password",
+        font=NORMAL_FONT,
+        bg=BG
+    ).pack()
+
+
+    password_entry = tk.Entry(
+        window,
+        font=("Arial", 15),
+        width=30,
+        show="●",
+        bg=LIGHT
+    )
+
+
+    password_entry.pack(pady=15)
+
+
+    def login():
+
+        if password_entry.get() == password:
+
+            window.destroy()
+
+            librarian_menu()
+
+
+        else:
+
+            messagebox.showerror(
+                "Incorrect Password",
+                "Incorrect librarian password.",
+                parent=window
+            )
+
+
+    tk.Button(
+        window,
+        text="Login",
+        command=login,
+        font=BUTTON_FONT,
+        width=20,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+# ============================================================
+# CHANGE PASSWORD
+# ============================================================
+
+def change_password():
+
+    window = tk.Toplevel(root)
+
+    window.title("Change Password")
+
+    window.geometry("550x350")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Change Password",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=30)
+
+
+    tk.Label(
+        window,
+        text="Enter new password",
+        font=NORMAL_FONT,
+        bg=BG
+    ).pack()
+
+
+    entry = tk.Entry(
+        window,
+        font=("Arial", 15),
+        width=30,
+        show="●",
+        bg=LIGHT
+    )
+
+
+    entry.pack(pady=15)
+
+
+    def change():
+
+        global password
+
+
+        new_password = entry.get()
+
+
+        if new_password == "":
+
+            messagebox.showwarning(
+                "Invalid Password",
+                "Password cannot be empty.",
+                parent=window
+            )
+
+            return
+
+
+        password = new_password
+
+
+        messagebox.showinfo(
+            "Password Changed",
+            "The librarian password has been changed.",
+            parent=window
+        )
+
+
+        window.destroy()
+
+
+    tk.Button(
+        window,
+        text="Change Password",
+        command=change,
+        font=BUTTON_FONT,
+        width=20,
+        height=2,
+        bg=ACCENT,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=20)
+
+
+# ============================================================
+# ADD BOOK
+# ============================================================
+
+def add_book():
+
+    window = tk.Toplevel(root)
+
+    window.title("Add Book")
+
+    window.geometry("650x550")
+
+    window.configure(bg=BG)
+
+    window.transient(root)
+
+    window.grab_set()
+
+
+    tk.Label(
+        window,
+        text="Add a New Book",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=25)
+
+
+    form = tk.Frame(
+        window,
+        bg=BG
+    )
+
+    form.pack()
+
+
+    labels = [
+        "Book Name",
+        "Author",
+        "Genre"
+    ]
+
+
+    entries = []
+
+
+    for i, label in enumerate(labels):
+
+        tk.Label(
+            form,
+            text=label,
+            font=NORMAL_FONT,
+            bg=BG
+        ).grid(
+            row=i,
+            column=0,
+            sticky="w",
+            pady=12
+        )
+
+
+        entry = tk.Entry(
+            form,
+            font=("Arial", 14),
+            width=35,
+            bg=LIGHT
+        )
+
+
+        entry.grid(
+            row=i,
+            column=1,
+            padx=15,
+            pady=12
+        )
+
+
+        entries.append(entry)
+
+
+    def add():
+
+        name = entries[0].get().strip()
+
+        author = entries[1].get().strip()
+
+        genre = entries[2].get().strip()
+
+
+        if (
+            name == ""
+            or author == ""
+            or genre == ""
+        ):
+
+            messagebox.showwarning(
+                "Missing Information",
+                "Please fill in all fields.",
+                parent=window
+            )
+
+            return
+
+
+        # ----------------------------------------------------
+        # CHECK IF BOOK ALREADY EXISTS
+        # ----------------------------------------------------
+
+        query = """
+        SELECT * FROM books
+        WHERE LOWER(Book_Name)=LOWER(%s)
+        """
+
+
+        cursor.execute(
+            query,
+            (name,)
+        )
+
+
+        data = cursor.fetchone()
+
+
+        # ----------------------------------------------------
+        # BOOK ALREADY EXISTS
+        # Increase quantity instead of INSERT
+        # ----------------------------------------------------
+
+        if data is not None:
+
+            query = """
+            UPDATE books
+            SET Quantity = Quantity + 1
+            WHERE Book_Name=%s
+            """
+
+
+            cursor.execute(
+                query,
+                (data[0],)
+            )
+
+
+            mycon.commit()
+
+
+            messagebox.showinfo(
+                "Book Already Exists",
+                "The library already has this book.\n\n"
+                + data[0]
+                + "\n\n"
+                + "Quantity has been increased by 1.",
+                parent=window
+            )
+
+
+            window.destroy()
+
+
+        # ----------------------------------------------------
+        # BOOK DOES NOT EXIST
+        # Add normally
+        # ----------------------------------------------------
+
+        else:
+
+            try:
+
+                cursor.execute(
+                    """
+                    INSERT INTO books
+                    VALUES(%s,%s,%s,%s)
+                    """,
+                    (
+                        name,
+                        author,
+                        genre,
+                        1
+                    )
+                )
+
+
+                mycon.commit()
+
+
+                messagebox.showinfo(
+                    "Book Added",
+                    name
+                    + " has been added to the library.",
+                    parent=window
+                )
+
+
+                window.destroy()
+
+
+            except mysql.connector.Error as e:
+
+                messagebox.showerror(
+                    "Database Error",
+                    "Could not add the book.\n\n"
+                    + str(e),
+                    parent=window
+                )
+
+
+    tk.Button(
+        window,
+        text="Add Book",
+        command=add,
+        font=BUTTON_FONT,
+        width=25,
+        height=2,
+        bg=GREEN,
+        fg="white",
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=25)
+
+
+# ============================================================
+# DELETE BOOK
+# ============================================================
+
+def delete_book():
+
+    query = """
+    SELECT * FROM books
+    """
+
+
+    cursor.execute(query)
+
+    data = cursor.fetchall()
+
+
+    if len(data) == 0:
+
+        messagebox.showinfo(
+            "Delete Book",
+            "There are no books in the library."
+        )
+
+        return
+
+
+    def selected_book(book):
+
+        name = book[0]
+
+        author = book[1]
+
+
+        answer = messagebox.askyesno(
+            "Confirm Delete",
+            "Remove this book?\n\n"
+            + name
+            + "\n"
+            + "by "
+            + author
+        )
+
+
+        if answer:
+
+            cursor.execute(
+                """
+                DELETE FROM books
+                WHERE Book_Name=%s
+                AND Author=%s
+                """,
+                (
+                    name,
+                    author
+                )
+            )
+
+
+            mycon.commit()
+
+
+            messagebox.showinfo(
+                "Book Removed",
+                name
+                + " has been removed from the library."
+            )
+
+
+    selection_window(
+        "Select a Book to Remove",
+        data,
+        selected_book,
+        lambda x:
+            f"{x[0]}   |   {x[1]}   |   {x[2]}   |   Quantity: {x[3]}"
+    )
+
+
+# ============================================================
+# VIEW DONORS
+# ============================================================
+
+def view_donors():
+
+    f = open(
+        "donors.csv",
+        "r",
+        newline=""
+    )
+
+
+    csvr = csv.reader(f)
+
+    next(csvr)
+
+
+    donors = []
+
+
+    for i in csvr:
+
+        donors.append(
+            f"Donor: {i[0]}    |    Book: {i[1]}"
+        )
+
+
+    f.close()
+
+
+    window = tk.Toplevel(root)
+
+    window.title("Donors")
+
+    window.geometry("650x500")
+
+    window.configure(bg=BG)
+
+
+    tk.Label(
+        window,
+        text="Library Donors",
+        font=("Georgia", 25, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=25)
+
+
+    listbox = tk.Listbox(
+        window,
+        font=("Arial", 13),
+        bg=LIGHT,
+        fg=TEXT,
+        width=60,
+        height=15
+    )
+
+
+    listbox.pack(
+        padx=30,
+        pady=10,
+        fill="both",
+        expand=True
+    )
+
+
+    if len(donors) == 0:
+
+        listbox.insert(
+            tk.END,
+            "No donations yet."
+        )
+
+
+    else:
+
+        for donor in donors:
+
+            listbox.insert(
+                tk.END,
+                donor
+            )
+
+
+# ============================================================
+# LIBRARIAN MENU
+# ============================================================
+
+def librarian_menu():
+
+    clear_window()
+
+
+    title_label(
+        root,
+        "Librarian Dashboard"
+    )
+
+
+    subtitle_label(
+        root,
+        "Library Administration"
+    )
+
+
+    create_button(
+        root,
+        "🔐  Change Password",
+        change_password
+    )
+
+
+    create_button(
+        root,
+        "➕  Add Book",
+        add_book
+    )
+
+
+    create_button(
+        root,
+        "🗑  Remove Book",
+        delete_book
+    )
+
+
+    create_button(
+        root,
+        "🎁  View Donors",
+        view_donors
+    )
+
+
+    create_button(
+        root,
+        "←  Back to Main Menu",
+        main_menu
+    )
+
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+
+def main_menu():
+
+    clear_window()
+
+
+    tk.Label(
+        root,
+        text="THE LIBRARY",
+        font=("Georgia", 32, "bold"),
+        bg=BG,
+        fg=DARK
+    ).pack(pady=(65, 5))
+
+
+    tk.Label(
+        root,
+        text="Library Management System",
+        font=("Georgia", 16),
+        bg=BG,
+        fg=SECONDARY
+    ).pack(pady=(0, 45))
+
+
+    create_button(
+        root,
+        "📚  Librarian",
+        librarian_login,
+        width=30
+    )
+
+
+    create_button(
+        root,
+        "👤  Library Member",
+        member_login,
+        width=30
+    )
+
+
+    create_button(
+        root,
+        "✨  Join the Library",
+        join_library,
+        width=30
+    )
+
+
+    tk.Button(
+        root,
+        text="Exit",
+        command=exit_program,
+        font=("Arial", 11),
+        bg=BG,
+        fg=SECONDARY,
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=25)
+
+
+# ============================================================
+# EXIT
+# ============================================================
+
+def exit_program():
+
+    answer = messagebox.askyesno(
+        "Exit",
+        "Are you sure you want to exit?"
+    )
+
+
+    if answer:
+
+        try:
+
+            cursor.close()
+
+            mycon.close()
+
+        except:
+
+            pass
+
+
+        root.destroy()
+
+
+# ============================================================
+# START PROGRAM
+# ============================================================
+
+main_menu()
+
+
+root.protocol(
+    "WM_DELETE_WINDOW",
+    exit_program
+)
+
+
+root.mainloop()
