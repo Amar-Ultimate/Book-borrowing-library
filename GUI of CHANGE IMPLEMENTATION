@@ -2,6 +2,7 @@ import mysql.connector
 import random
 import csv
 import os
+from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
 
@@ -193,8 +194,8 @@ def back_button(parent, command):
     button.pack(pady=15)
 
 
-def selection_window(title, items, callback, display_function=None):
-    """Display options in a scrollable list and pass the chosen item to callback."""
+def selection_window(title, items, callback=None, display_function=None, show_select=True):
+    """Display a scrollable list; optionally allow the user to select an item."""
     window = tk.Toplevel(root)
     window.title(title)
     window.geometry("700x500")
@@ -243,20 +244,21 @@ def selection_window(title, items, callback, display_function=None):
         window.destroy()
         callback(item)
 
-    listbox.bind("<Double-Button-1>", choose)
+    if show_select:
+        listbox.bind("<Double-Button-1>", choose)
 
-    tk.Button(
-        window,
-        text="Select",
-        command=choose,
-        font=BUTTON_FONT,
-        width=20,
-        height=2,
-        bg=ACCENT,
-        fg="white",
-        relief="flat",
-        cursor="hand2"
-    ).pack(pady=20)
+        tk.Button(
+            window,
+            text="Select",
+            command=choose,
+            font=BUTTON_FONT,
+            width=20,
+            height=2,
+            bg=ACCENT,
+            fg="white",
+            relief="flat",
+            cursor="hand2"
+        ).pack(pady=20)
 
 
 # ============================================================
@@ -383,6 +385,53 @@ def borrow_book(ID):
             if borrow_date == "" or return_date == "":
                 messagebox.showwarning(
                     "Missing Dates", "Please enter both dates.", parent=date_window
+                )
+                return
+
+            # Validate the exact DD-MM-YYYY format and real calendar dates.
+            try:
+                if (
+                    len(borrow_date) != 10
+                    or borrow_date[2] != "-"
+                    or borrow_date[5] != "-"
+                    or len(return_date) != 10
+                    or return_date[2] != "-"
+                    or return_date[5] != "-"
+                ):
+                    raise ValueError
+
+                borrow_date_value = datetime.strptime(borrow_date, "%d-%m-%Y").date()
+                return_date_value = datetime.strptime(return_date, "%d-%m-%Y").date()
+
+                # strptime can accept some non-zero-padded values, so check exact format.
+                if (
+                    borrow_date_value.strftime("%d-%m-%Y") != borrow_date
+                    or return_date_value.strftime("%d-%m-%Y") != return_date
+                ):
+                    raise ValueError
+
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Date",
+                    "Please enter valid calendar dates in DD-MM-YYYY format.\n"
+                    "For example: 05-11-2026.",
+                    parent=date_window
+                )
+                return
+
+            if borrow_date_value > return_date_value:
+                messagebox.showerror(
+                    "Invalid Date Order",
+                    "The borrowing date cannot be after the return date.",
+                    parent=date_window
+                )
+                return
+
+            if (return_date_value - borrow_date_value).days < 10:
+                messagebox.showerror(
+                    "Minimum Borrowing Period",
+                    "The return date must be at least 10 days after the borrowing date.",
+                    parent=date_window
                 )
                 return
 
@@ -688,8 +737,9 @@ def show_available_books():
         return
 
     selection_window(
-        "Available Books", data, lambda x: None,
-        lambda x: f"{x[0]}   |   {x[1]}   |   {x[2]}   |   Available: {x[3]}"
+        "Available Books", data,
+        display_function=lambda x: f"{x[0]}   |   {x[1]}   |   {x[2]}   |   Available: {x[3]}",
+        show_select=False
     )
 
 
